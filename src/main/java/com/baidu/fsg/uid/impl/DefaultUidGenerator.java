@@ -16,9 +16,11 @@
 package com.baidu.fsg.uid.impl;
 
 import java.util.Date;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -70,13 +72,17 @@ public class DefaultUidGenerator implements UidGenerator, InitializingBean {
     protected String epochStr = "2016-05-20";
     protected long epochSeconds = TimeUnit.MILLISECONDS.toSeconds(1463673600000L);
 
+    /** Make slightly different */
+    protected boolean varied = false;
+
     /** Stable fields after spring bean initializing */
     protected BitsAllocator bitsAllocator;
     protected long workerId;
 
     /** Volatile fields caused by nextId() */
     protected long sequence = 0L;
-    protected long lastSecond = -1L;
+    protected AtomicLong lastSecond = new AtomicLong(Long.MIN_VALUE);
+    protected Random random = new Random();
 
     /** Spring property */
     protected WorkerIdAssigner workerIdAssigner;
@@ -132,44 +138,32 @@ public class DefaultUidGenerator implements UidGenerator, InitializingBean {
      * @return UID
      * @throws UidGenerateException in the case: Clock moved backwards; Exceeds the max timestamp
      */
-    protected synchronized long nextId() {
-        long currentSecond = getCurrentSecond();
+    protected long nextId() {
+        long current = getCurrentSecond() << bitsAllocator.getSequenceBits();
 
-        // Clock moved backwards, refuse to generate uid
-        if (currentSecond < lastSecond) {
-            long refusedSeconds = lastSecond - currentSecond;
-            throw new UidGenerateException("Clock moved backwards. Refusing for %d seconds", refusedSeconds);
-        }
-
-        // At the same second, increase sequence
-        if (currentSecond == lastSecond) {
-            sequence = (sequence + 1) & bitsAllocator.getMaxSequence();
-            // Exceed the max sequence, we wait the next second to generate uid
-            if (sequence == 0) {
-                currentSecond = getNextSecond(lastSecond);
+        while (true) {
+            long last = lastSecond.get();
+            if (current > last) {
+                if (lastSecond.compareAndSet(last, current)) {
+                    if (varied) {
+                        long delta = ((long) random.nextInt()) & bitsAllocator.getMaxSequence();
+                        if (lastSecond.compareAndSet(current, current + delta)) {
+                            current = current + delta;
+                        }
+                    }
+                    break;
+                }
+            } else if (lastSecond.compareAndSet(last, last + 1L)) {
+                current = last + 1L;
+                break;
             }
-
-        // At the different second, sequence restart from zero
-        } else {
-            sequence = 0L;
         }
 
-        lastSecond = currentSecond;
+        long sequence = current & bitsAllocator.getMaxSequence();
+        current = current >>> bitsAllocator.getSequenceBits();
 
         // Allocate bits for UID
-        return bitsAllocator.allocate(currentSecond - epochSeconds, workerId, sequence);
-    }
-
-    /**
-     * Get next millisecond
-     */
-    private long getNextSecond(long lastTimestamp) {
-        long timestamp = getCurrentSecond();
-        while (timestamp <= lastTimestamp) {
-            timestamp = getCurrentSecond();
-        }
-
-        return timestamp;
+        return bitsAllocator.allocate(current - epochSeconds, workerId, sequence);
     }
 
     /**
@@ -214,5 +208,9 @@ public class DefaultUidGenerator implements UidGenerator, InitializingBean {
             this.epochStr = epochStr;
             this.epochSeconds = TimeUnit.MILLISECONDS.toSeconds(DateUtils.parseByDayPattern(epochStr).getTime());
         }
+    }
+
+    public void setVaried(boolean varied) {
+        this.varied = varied;
     }
 }

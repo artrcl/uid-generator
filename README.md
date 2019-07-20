@@ -132,6 +132,9 @@ For performance sensitive application, CachedUidGenerator is recommended.
     <property name="workerBits" value="21"/>
     <property name="seqBits" value="13"/>
     <property name="epochStr" value="2016-09-20"/>
+
+    <!-- Make slightly different -->
+    <property name="varied" value="false" />
 </bean>
  
 <!-- Disposable WorkerIdAssigner based on Database -->
@@ -191,9 +194,9 @@ Copy beans of CachedUidGenerator to 'test/resources/uid/cached-uid-spring.xml'.
 </bean>
 
 <!-- transaction -->
-<tx:annotation-driven transaction-manager="transactionManager" order="1" />
+<tx:annotation-driven transaction-manager="uidGeneratorTransactionManager" order="1" />
 
-<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+<bean id="uidGeneratorTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
 	<property name="dataSource" ref="dataSource" />
 </bean>
 

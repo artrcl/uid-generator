@@ -118,6 +118,9 @@ PRIMARY KEY(ID)
     <property name="workerBits" value="21"/>
     <property name="seqBits" value="13"/>
     <property name="epochStr" value="2016-09-20"/>
+
+    <!-- Make slightly different -->
+    <property name="varied" value="false" />
 </bean>
  
 <!-- 用完即弃的WorkerIdAssigner，依赖DB操作 -->
@@ -179,9 +182,9 @@ PRIMARY KEY(ID)
 </bean>
 
 <!-- 事务相关配置 -->
-<tx:annotation-driven transaction-manager="transactionManager" order="1" />
+<tx:annotation-driven transaction-manager="uidGeneratorTransactionManager" order="1" />
 
-<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+<bean id="uidGeneratorTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
 	<property name="dataSource" ref="dataSource" />
 </bean>
 
