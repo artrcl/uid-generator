@@ -134,8 +134,49 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>com.github.wvengen</groupId>
+                <artifactId>proguard-maven-plugin</artifactId>
+                <version>2.1.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>proguard</goal>
+                        </goals>
+                        <configuration>
+                            <attach>true</attach>
+                            <obfuscate>true</obfuscate>
+                            <attachArtifactClassifier>pg</attachArtifactClassifier>
+                            <options>
+                                <option>-target 1.8</option>
+                                <option>-verbose</option>
+                                <option>-dontshrink</option>
+                                <option>-dontoptimize</option>
+                                <option>-dontskipnonpubliclibraryclasses</option>
+                                <option>-dontskipnonpubliclibraryclassmembers</option>
+                                <option>-allowaccessmodification</option>
+                                <option>-useuniqueclassmembernames</option>
+                                <option>-keeppackagenames</option>
+                                <option>-keepattributes Exceptions,InnerClasses,Signature,Deprecated,SourceFile,LineNumberTable,*Annotation*,Synthetic,EnclosingMethod</option>
+                                <option>-keepclassmembers public class * {void set*(***);*** get*();}</option>
+                                <option>-keep class com.baidu.fsg.uid.buffer.*</option>
+                                <option>-keep class com.baidu.fsg.uid.UidGenerator {*;}</option>
+                                <option>-keep class com.baidu.fsg.uid.exception.*</option>
+                                <option>-keep class com.baidu.fsg.uid.impl.**</option>
+                                <option>-keep class com.baidu.fsg.uid.worker.** {&lt;methods&gt;;}</option>
+                                <option>-keep class com.baidu.fsg.uid.worker.entity.** {*;}</option>
+                            </options>
+                            <libs>
+                                <lib>${java.home}/lib/rt.jar</lib>
+                            </libs>
+                            <addMavenDescriptor>true</addMavenDescriptor>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
-
 
 </project>
